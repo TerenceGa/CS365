@@ -1,0 +1,18 @@
+black,  mushy,  NO
+black,  mushy,  NO
+brown,  mushy,  YES
+green,  soft,   YES
+brown,  soft,   YES
+brown,  soft,   YES
+brown,  soft,   YES
+green,  tender, YES
+black,  soft,   YES
+green,  hard,   NO
+green,  soft,   YES
+green,  hard,   NO
+brown,  hard,   NO
+green,  tender, NO
+brown,  tender, YES
+black,  soft,   NO
+brown,  mushy,  NO
+
