@@ -139,12 +139,8 @@ class KMeans(object):
         #  choose cluster 2 as it is the smallest cluster idx out of all choices)
         # TODO: finish me!
         cluster_idx_assignments: np.ndarray = np.empty((num_examples, 1), dtype=int)
-        X_squared: np.ndarray = np.sum(X ** 2, axis=1).reshape(-1, 1)
-        centers_squared: np.ndarray = np.sum(self.cluster_centers ** 2, axis=1).reshape(1, -1)
-        cross_terms: np.ndarray = np.dot(X, self.cluster_centers.T)
-        distances: np.ndarray = X_squared - 2 * cross_terms + centers_squared
-        cluster_idx_assignments = np.argmin(distances, axis=1).reshape(-1, 1)
-
+        dist = np.sum((X[:, np.newaxis, :] - self.cluster_centers)**2, axis=2)
+        cluster_idx_assignments = np.argmin(dist, axis=1).reshape(-1, 1)
         return cluster_idx_assignments
 
 

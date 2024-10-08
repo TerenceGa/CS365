@@ -1,8 +1,10 @@
 # SYSTEM IMPORTS
 from abc import abstractmethod, ABC     # you need these to make an abstract class in Python
 from typing import List, Type, Union    # Python's typing syntax
-import numpy as np                      # linear algebra & useful containers
+import numpy as np
+import math                      # linear algebra & useful containers
 from math import comb
+
 
 # PYTHON PROJECT IMPORTS
 
@@ -11,7 +13,7 @@ from math import comb
 DistributionType: Type = Type["Distribution"]
 BinomialDistributionType = Type["BinomialDistribution"]
 PoissonDistributionType = Type["PoissonDistribution"]
-
+GaussianDistributionType = Type["GaussianDistribution"]
 
 # an abstract class for an arbitrary distribution
 # please don't touch this class
@@ -53,7 +55,7 @@ class BinomialDistribution(Distribution):
             X: np.ndarray               # input data to fit from
             ) -> BinomialDistributionType:
         if X.shape[-1] != self.n:
-            raise ValueError(f"ERROR: expected {n} outcomes in data")
+            raise ValueError
         if X.shape[0] != 1:
             raise ValueError(f"ERROR: expected a single row to fit from")
 
@@ -64,23 +66,19 @@ class BinomialDistribution(Distribution):
 
         return self # keep this at the end
 
-    def prob(self: BinomialDistributionType,
-             X: np.ndarray
-             ) -> np.ndarray:
+
+    def prob(self: BinomialDistributionType, X: np.ndarray) -> np.ndarray:
         if X.shape[-1] != self.n:
-            raise ValueError(f"ERROR: expected 2d data with {n} outcomes in each example")
-
-        k = X.flatten()
-        probabilities = np.array([comb(self.n, k) * self.p**k * (1-self.p)**(self.n-k) for k in k])
-        
-        probabilities = probabilities.reshape(-1,1)
-        return probabilities
-
+            raise ValueError(f"ERROR: expected 2D data with {self.n} outcomes in each example")
+        k = np.sum(X, axis=1)
+        P = np.power(self.p, k) * np.power(1 - self.p, self.n - k)
+        return P.reshape(-1, 1)
+    
     def parameters(self: BinomialDistributionType) -> List[Union[float, np.ndarray]]:
         return [self.n, self.p]
 
 
-""" EXTRA CREDIT
+
 class GaussianDistribution(Distribution):
     def __init__(self: GaussianDistributionType) -> None:
         # controlled by parameters mu and var
@@ -92,18 +90,21 @@ class GaussianDistribution(Distribution):
                                             # this will be a bunch of integer samples stored in a column vector
             ) -> GaussianDistributionType:
 
-        # TODO: complete me!
+        self.mu = np.mean(X)
+        self.var = np.var(X, ddof=0)
         return self # keep this at the end
 
     def prob(self: GaussianDistributionType,
              X: np.ndarray                  # this will be a column vector where every element is a float
              ) -> np.ndarray:
-        # TODO: complete me!
-        ... # same as "pass"
+        c = 1.0 / np.sqrt(2 * np.pi * self.var)
+        exponent = -((X - self.mu) ** 2) / (2 * self.var)
+        p = c * np.exp(exponent)
+        return p.reshape(-1, 1)
 
     def parameters(self: GaussianDistributionType) -> List[Union[float, np.ndarray]]:
         return [self.mu, self.var]
-"""
+
 
 
 # a class for the poisson distribution
@@ -116,14 +117,23 @@ class PoissonDistribution(Distribution):
     def fit(self: PoissonDistributionType,
             X: np.ndarray               # input data to fit from
             ) -> PoissonDistributionType:
-        # TODO: complete me!
-        return self # keep this at the end
+        X = X.flatten()
+        self._lambda = np.mean(X)
+        return self
+    
 
     def prob(self: PoissonDistributionType,
              X: np.ndarray
              ) -> np.ndarray:
-        # TODO: complete me!
-        ... # same as "pass"
+        X = X.flatten()
+        k = X.astype(np.float64)
+        lambda_ = self._lambda
+
+        # Compute log PMF to improve numerical stability
+        log_pmf = -lambda_ + k * math.log(lambda_) - np.array([math.lgamma(val + 1) for val in k])
+        probabilities = np.exp(log_pmf)
+        
+        return probabilities.reshape(-1, 1)
 
     def parameters(self: PoissonDistributionType) -> List[Union[float, np.ndarray]]:
         return [self._lambda]
