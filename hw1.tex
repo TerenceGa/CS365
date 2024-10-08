@@ -1,0 +1,135 @@
+\documentclass[11pt]{article}
+
+%\usepackage{geometry}
+\usepackage[paper=a4paper, 
+            left=20.0mm, right=20.0mm, 
+            top=25.0mm, bottom=25.0mm]{geometry}
+\pagestyle{empty}
+\usepackage{graphicx}
+\usepackage{fancyhdr, lastpage, bbding, pmboxdraw}
+\usepackage[usenames,dvipsnames]{color}
+\definecolor{darkblue}{rgb}{0,0,.6}
+\definecolor{darkred}{rgb}{.7,0,0}
+\definecolor{darkgreen}{rgb}{0,.6,0}
+\definecolor{red}{rgb}{.98,0,0}
+\usepackage[colorlinks,pagebackref,pdfusetitle,urlcolor=darkblue,citecolor=darkblue,linkcolor=darkred,bookmarksnumbered,plainpages=false]{hyperref}
+\renewcommand{\thefootnote}{\fnsymbol{footnote}}
+
+\pagestyle{fancyplain}
+\fancyhf{}
+\lhead{ \fancyplain{}{Course Name} }
+%\chead{ \fancyplain{}{} }
+\rhead{ \fancyplain{}{\today} }
+%\rfoot{\fancyplain{}{page \thepage\ of \pageref{LastPage}}}
+\fancyfoot[RO, LE] {Page \thepage\ of \textcolor{black}{\pageref{LastPage}} }
+\thispagestyle{plain}
+
+%%%%%%%%%%%% LISTING %%%
+\usepackage{listings}
+\usepackage{caption}
+\usepackage{subcaption}
+\DeclareCaptionFont{white}{\color{white}}
+\DeclareCaptionFormat{listing}{\colorbox{gray}{\parbox{\textwidth}{#1#2#3}}}
+\captionsetup[lstlisting]{format=listing,labelfont=white,textfont=white}
+\usepackage{verbatim} % used to display code
+\usepackage{fancyvrb}
+\usepackage{acronym}
+\usepackage{amsthm, amsmath}
+\usepackage{tikz}
+    \usetikzlibrary{calc, arrows, arrows.meta, positioning}
+
+\VerbatimFootnotes % Required, otherwise verbatim does not work in footnotes!
+
+\definecolor{OliveGreen}{cmyk}{0.64,0,0.95,0.40}
+\definecolor{CadetBlue}{cmyk}{0.62,0.57,0.23,0}
+\definecolor{lightlightgray}{gray}{0.93}
+
+\lstset{
+	%language=bash,                          % Code langugage
+	basicstyle=\ttfamily,                   % Code font, Examples: \footnotesize, \ttfamily
+	keywordstyle=\color{OliveGreen},        % Keywords font ('*' = uppercase)
+	commentstyle=\color{gray},              % Comments font
+	numbers=left,                           % Line nums position
+	numberstyle=\tiny,                      % Line-numbers fonts
+	stepnumber=1,                           % Step between two line-numbers
+	numbersep=5pt,                          % How far are line-numbers from code
+	backgroundcolor=\color{lightlightgray}, % Choose background color
+	frame=none,                             % A frame around the code
+	tabsize=2,                              % Default tab size
+	captionpos=t,                           % Caption-position = bottom
+	breaklines=true,                        % Automatic line breaking?
+	breakatwhitespace=false,                % Automatic breaks only at whitespace?
+	showspaces=false,                       % Dont make spaces visible
+	showtabs=false,                         % Dont make tabls visible
+	columns=flexible,                       % Column format
+	morekeywords={__global__, __device__},  % CUDA specific keywords
+}
+
+\newcommand{\question}[1]{\section*{\normalsize #1}}
+% \newcommand{\mat}[1]{\begin{bmatrix}#1\end{bmatrix}}
+% \newcommand{\extraspace}[]{
+%     \begin{center}
+%         \textbf{Use this page for extra space.}
+%     \end{center}
+% }
+
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+
+\begin{document}
+\begin{center}
+    {\Large \textsc{HW 1}}
+\end{center}
+\begin{center}
+    Due: Friday 09/20/2024 @ 11:59pm EST
+\end{center}
+
+\section*{\textbf{Disclaimer}}
+I encourage you to work together, I am a firm believer that we are at our best (and learn better) when we communicate with our peers. Perspective is incredibly important when it comes to solving problems, and sometimes it takes talking to other humans (or rubber ducks in the case of programmers) to gain a perspective we normally would not be able to achieve on our own. The only thing I ask is that you report who you work with: this is \textbf{not} to punish anyone, but instead will help me figure out what topics I need to spend extra time on/who to help. When you turn in your solution (please use some form of typesetting: do \textbf{NOT} turn in handwritten solutions), please note who you worked with.
+
+
+
+\question{Question 1: Monte-Carlo Algorithms (better runtime at the cost of being always correct) (20 points)}
+Consider being a participant on family feud where Steve Harvey has you compete against a person from the rival family. In this setting, Steve Harvey brings you and your opponent to a table with two buzzers and reads out a question. The first person to ring the buzzer gets to answer: if they get the question right, then they earn the opportunity to win points in the game. If they get the question wrong, their opponent earns the opportunity to win points in the game. Suffice to say that having a quick reaction time is important.\newline
+
+\noindent We, being tired and overworked and whatnot, need help in this game. Our reaction time is not what it would be if we were rested and unstressed, so if Steve Harvey finishes the question we are sure to lose the race to hit the buzzer. Being rather clever mathematicians, we devise a rather devious plot: we'll hit the buzzer \textbf{before} the question is fully read. Of course, we run the risk of getting the question wrong because we didn't wait to hear the whole thing, but we are rather confident that if we wait for the entire question to be read, our chance of winning is near zero. Surely its better to take our chances here right?\newline
+
+\noindent In such a scheme, the normal running/processing time is too slow for us: we need something faster. While modeling the correct answer as a function of what words are spoken (and have yet to be spoken) is really complicated, we can instead try to solve a somewhat simpler problem that has similar behaviour.\newline
+
+\noindent Now, rather than playing family feud, let us pretend that you are given $n$ numbers and want to pick one of those numbers. The condition here is that you want to pick a number \textbf{larger} than a median of all $n$ numbers. We could solve this in a few ways, the most efficient being to find the median of all $n$ numbers in linear time, and then perform a linear scan until we find a number larger than the median, which we pick. However, like our family feud scenario, we don't have time to perform a linear scan to calculate the median. Instead, we want to examine only $k$ of these numbers (where $k$ is a constant). After examining all $k$ numbers, we want to pick one of those $k$ numbers as our choice. Let us choose the largest of the $k$ numbers we have examined as our answer. What is the probability that the number we pick is correct (your answer should be a function of $k$)?\newline\newline
+
+\noindent (hint: try to give an upper bound on the probability that our algorithm is wrong first).\newpage
+
+
+\question{Question 2: Bounding Probabilistic Events (20 points)}
+You are given a coin with bias $p$. Let us flip the coin $n$ times and observe the outcomes $X_1, X_2, \cdots, X_n$. Let us count the average number of successes $\bar{X} = \frac{1}{n}\sum\limits_{i=1}^n X_i$. Since we are constructing $\bar{X}$ as an empirical average, we know that $0\le \bar{X}\le 1$. What we are interested in is how likely the value of $\bar{X}$ differs from the bias of the coin $p$. Compute an upper bound for the quantity $Pr[|\bar{X} - p| \ge \frac{p}{10}]$ using the Chebyshev inequality. Your answer should be a function of $n$: the number of coin tosses.\newpage
+
+
+
+
+\question{Question 3: Combining Probability Distributions (20 points)}
+Consider two probability distributions $f$ and $g$, both defined over the same continuous domain. A \textit{convex} combination of two function $f_1$ and $f_2$ creates a third function $f_3$ which is defined as follows:
+$$f_3 := \lambda f_1 + (1-\lambda)f_2$$
+for some value of $0\le \lambda \le 1$. Please show that the convex combination of two probability distributions $f$ and $g$ (mentioned earlier) produces a function that is also a valid probability distribution.\newpage
+
+
+\question{Question 4: Graph Representatives (20 points)}
+When doing some analysis of some data (like social networks), we often want to combine lots of examples togther to find a \textit{representative} of those examples. By studying the representative of the examples, we can sometimes find patters and make claims about the examples that it represents. In this problem, consider a set of graphs $\mathcal{G}$ defined over the same set of vertices $V$. In this problem, we can measure the distance $d$ between two graphs $G_1$ and $G_2$ to be the number of edges that are in $G_1$ but not $G_2$ plus the number of edges that are in $G_2$ but not in $G_1$. Mathematically:
+$$d(G_1, G_2) = |E_1 \backslash E_2| + |E_2 \backslash E_1|$$
+
+\noindent Design a polynomial time algorithm that finds the \textit{representative} of the set of graphs in $\mathcal{G}$. Prove the correctness of your algorithm. \textit{Note} that a representative of a set of objects $X = \{x_1, x_2, x_3, \cdots, x_n\}$ is an object $x^*$ that is not necessarily a member of $X$. The representative is the optimum of some distance function $x^* = \argmin\limits_{x}\sum\limits_{i=1}^n d(x_i, x)$\newpage
+
+
+\question{Question 5: MLE Estimates (20 points)}
+In lecture we found the MLE estimate for the Binomial distribution for the event when we know we have $k$ heads. In this question, consider being presented with a dataset $X = \{x_1, x_2, \cdots, x_n\}$ where each $x_i$ is a specific outcome of flipping a coin (with bias $p$) $m$ times. So, each $x_i$ is a string containing $m$ characters where each character either denotes a success or not a success. What is the MLE estimate for $p$ given this dataset?\newpage
+
+
+\question{Extra Credit: Turning a Monte-Carlo Algorithm into a Las-Vegas Algorithm (20 points)}
+IN question 1, we talked about a monte-carlo algorithm for picking a number larger than the median. In this extra credit question we want to repeat this experiment until it succeeds. For instance, lets call our algorithm in question 1 \texttt{pick\_only\_see\_k(pts, k)} where \texttt{pts} is a sequence of $n$ numbers, and $k$ is the number of elements in \texttt{pts} we can examine before picking the largest of the ones we examined. An algorithm is called a monte-carlo algorithm if it can \textit{fail} (i.e. produce the wrong answer). By being wrong sometimes, we can often design algorithms that are much more efficient than if we were to always produce a correct answer. An algorithm that always produces a correct answer is called a las-vegas algorithm. You might think las-vegas algorithms are always better, but consider that when running a las-vegas algorithm, rather than gambling with correctness (like a monte-carlo algorithm does), you are instead gambling with how long it will take (which is why we are interested in big-O notation as it is a worst case estimate).
+
+In this question, we will design a las-vegas algorithm by using a monte-carlo algorithm as a building block (this is always possible). We will simply run our \texttt{pick\_only\_see\_k(pts, k)} algorithm until it succeeds (there is a little more work to do here but for now let us ignore it). How many times should I expect to have to repeat \texttt{pick\_only\_see\_k(pts, k)} until I get a correct answer? Your answer should be a functin of $k$.
+
+\end{document}
+
