@@ -55,12 +55,11 @@ def randomly_project(X: np.ndarray,                     # the original dataset
     # this function should return a pair:
     #   (f, X_reduced)
     check_2d(X)
-
     n, d = X.shape
     A = np.random.randn(d, k)
     f = (1 / np.sqrt(k)) * A
     X_reduced = X @ f
-    return A, X_reduced
+    return f, X_reduced
 
 
 def check_if_distance_satisfied(X: np.ndarray,          # the original dataset
@@ -96,25 +95,16 @@ def check_if_distance_satisfied(X: np.ndarray,          # the original dataset
 
     return np.all(withn_lower & within_upper)
 
-def reduce_dims_randomly(X: np.ndarray,                 # the original dataset
-                         k: int,                        # the dimensionality to reduce to
-                         epsilon: float                 # how far away points can be without breaking constraints
-                         ) -> Tuple[np.ndarray, np.ndarray, int]:
-    # this function should return a triple:
-    #   (f, X_reduced, num_iterations)
-
-    # TODO: complete me!
+def reduce_dims_randomly(X: np.ndarray, k: int, epsilon: float) -> Tuple[np.ndarray, np.ndarray, int]:
     iteration = 0
-    while True:
+    max_iter = 10000  # Increased maximum iterations
+    while iteration < max_iter:
         iteration += 1
-        A, X_reduced = randomly_project(X, k)
-        f = (1 / np.sqrt(k)) * A  # Shape: (d, k)
-        distance_satisfied = check_if_distance_satisfied(X, X_reduced, epsilon)
-        if distance_satisfied:
+        f, X_reduced = randomly_project(X, k)
+        if check_if_distance_satisfied(X, X_reduced, epsilon):
             return f, X_reduced, iteration
-        max_iter = 1000
-        if iteration > max_iter:
-            return f, X_reduced, iteration
+    raise RuntimeError(f"No valid projection found within {max_iter} iterations.")
+
         
 
 
