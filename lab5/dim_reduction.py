@@ -3,7 +3,7 @@ from typing import Callable, List, Type, Tuple          # typing info
 from tqdm import tqdm                                   # progress bar in python
 import numpy as np                                      # linear algebra
 import os                                               # manipulating paths
-
+from scipy.spatial.distance import pdist, squareform
 
 # PYTHON PROJECT IMPORTS
 
@@ -62,38 +62,55 @@ def randomly_project(X: np.ndarray,                     # the original dataset
     return f, X_reduced
 
 
-def check_if_distance_satisfied(X: np.ndarray,          # the original dataset
-                                X_reduced: np.ndarray,  # the reduced dataset
-                                epsilon: float          # how far away points can be without breaking constraints
+def check_if_distance_satisfied(X: np.ndarray,          # Original dataset
+                                X_reduced: np.ndarray,  # Reduced dataset
+                                epsilon: float          # Allowed deviation in distances
                                 ) -> bool:
-    # this function should return False if any of the points in X break a constraint
-    # and True otherwise
+    """
+    Checks whether the pairwise distances between points in the original dataset X
+    and the reduced dataset X_reduced satisfy the Johnson-Lindenstrauss (JL) constraints.
+
+    Parameters:
+    - X (np.ndarray): Original data matrix of shape (n_samples, n_features).
+    - X_reduced (np.ndarray): Reduced data matrix of shape (n_samples, n_reduced_features).
+    - epsilon (float): Maximum allowed relative distortion in distances.
+
+    Returns:
+    - bool: True if all pairwise distances satisfy the JL constraints, False otherwise.
+    """
+
+    # Ensure that input matrices are 2D and have the same number of samples
     check_2d(X)
     check_2d(X_reduced)
     check_same_num_examples(X, X_reduced)
 
-    n = X.shape[0]
+    n_samples = X.shape[0]
 
-    X_squre_norm = np.sum(X ** 2, axis=1).reshape(-1, 1)
-    X_reduced_squre_norm = np.sum(X_reduced ** 2, axis=1).reshape(-1, 1)
+    # Compute pairwise Euclidean distances in the original and reduced spaces
+    D_X = squareform(pdist(X, metric='euclidean'))
+    D_X_reduced = squareform(pdist(X_reduced, metric='euclidean'))
 
-    D_orig = X_squre_norm + X_squre_norm.T - 2 * np.dot(X, X.T)
-    D_reduced = X_reduced_squre_norm + X_reduced_squre_norm.T - 2 * np.dot(X_reduced, X_reduced.T)
+    # Create a mask to avoid division by zero (when original distances are very small)
+    nonzero_mask = D_X > 1e-8
 
-    D_orig = np.maximum(D_orig, 0)
-    D_reduced = np.maximum(D_reduced, 0)
+    # Initialize the ratios array with zeros
+    ratios = np.zeros_like(D_X)
 
-    triu_indices = np.triu_indices(n, k=1)
-    orig_distances = D_orig[triu_indices]
-    reduced_distances = D_reduced[triu_indices]
+    # Compute the ratio of distances where original distances are non-zero
+    ratios[nonzero_mask] = D_X_reduced[nonzero_mask] / D_X[nonzero_mask]
 
-    lower_bounds = (1 - epsilon) * orig_distances
-    upper_bound = (1 + epsilon) * orig_distances
+    # Define the acceptable range based on epsilon
+    lower_bound = 1 - epsilon
+    upper_bound = 1 + epsilon
 
-    withn_lower = reduced_distances >= lower_bounds
-    within_upper = reduced_distances <= upper_bound
+    # Identify violations where the ratio is outside the acceptable range
+    violations = (ratios < lower_bound) | (ratios > upper_bound)
 
-    return np.all(withn_lower & within_upper)
+    # Ignore self-distances by setting the diagonal to False
+    np.fill_diagonal(violations, False)
+
+    # If any violations are found, return False; otherwise, return True
+    return not np.any(violations)
 
 def reduce_dims_randomly(X: np.ndarray, k: int, epsilon: float) -> Tuple[np.ndarray, np.ndarray, int]:
     iteration = 0
