@@ -140,13 +140,15 @@ class BCE(LossFunction):
         self.check_input(Y_hat, Y_gt)
 
         # Avoid division by zero
-        epsilon = 1e-15
-        Y_hat_clipped = np.clip(Y_hat, epsilon, 1 - epsilon)
-        
-        N = Y_hat.shape[0]  # Batch size
+        dLoss_dY_hat_pre = - (Y_gt / Y_hat - (1 - Y_gt) / (1 - Y_hat)) 
 
-        # TODO: compute dLoss/dY_hat
-        dLoss_dY_hat = (-Y_gt / Y_hat_clipped + (1 - Y_gt) / (1 - Y_hat_clipped)) / N 
+
+        N = Y_hat.shape[0]
+        X = 1 / dLoss_dY_hat_pre
+        X /= N
+        dLoss_dY_hat = X
+
+        
         # your dLoss_dY_hat should have the same shape as Y_hat
         assert(dLoss_dY_hat.shape == Y_hat.shape)
         return dLoss_dY_hat
