@@ -140,14 +140,11 @@ class BCE(LossFunction):
         self.check_input(Y_hat, Y_gt)
 
         # Avoid division by zero
+        dLoss_dY_hat: np.ndarray = np.zeros_like(Y_hat)
+
         dLoss_dY_hat_pre = - (Y_gt / Y_hat - (1 - Y_gt) / (1 - Y_hat)) 
-
-
         N = Y_hat.shape[0]
-        X = 1 / dLoss_dY_hat_pre
-        X /= N
-        dLoss_dY_hat = X
-
+        dLoss_dY_hat = dLoss_dY_hat_pre / N
         
         # your dLoss_dY_hat should have the same shape as Y_hat
         assert(dLoss_dY_hat.shape == Y_hat.shape)
